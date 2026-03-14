@@ -1,0 +1,40 @@
+name: Daily Margin Data Update
+
+on:
+  schedule:
+    # 這是 UTC 時間。09:30 UTC = 台灣時間下午 5:30 (確保台股融資已經公布)
+    # 1-5 代表週一到週五執行
+    - cron: '30 9 * * 1-5'
+  workflow_dispatch: # 🌟 這個指令非常重要！它允許我們等一下「手動點擊」測試
+
+permissions:
+  contents: write # 允許機器人把新資料存回你的 CSV 檔
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pandas requests
+
+    - name: Run Python Scraper
+      run: python updater.py
+
+    - name: Commit and Push changes
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git add margin_balance.csv
+        git commit -m "自動更新台股融資餘額" || exit 0
+        git push
